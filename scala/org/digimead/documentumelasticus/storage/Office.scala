@@ -52,14 +52,14 @@ import com.sun.star.deployment.XPackageInformationProvider
 import com.sun.star.uno.XComponentContext
 import org.digimead.documentumelasticus.Extension
 import org.digimead.documentumelasticus.XUserUNO
-import org.digimead.documentumelasticus.component.XBase
-import org.digimead.documentumelasticus.component.XBaseInfo
+import org.digimead.documentumelasticus.component.XBaseClass
+import org.digimead.documentumelasticus.component.XBaseObject
 import org.digimead.documentumelasticus.helper._
 import org.slf4j.LoggerFactory
 import java.io.{File => JFile}
 
 class Office(val ctx: XComponentContext) extends XStorage {
-  protected val logger = LoggerFactory.getLogger(this.getClass)
+  protected val log = LoggerFactory.getLogger(this.getClass)
   var componentSingleton = Office.componentSingleton
   val componentTitle = Office.componentTitle
   val componentDescription = Office.componentDescription
@@ -70,7 +70,7 @@ class Office(val ctx: XComponentContext) extends XStorage {
   val packageInformationProvider = O.I[XPackageInformationProvider](ctx.getValueByName("/singletons/com.sun.star.deployment.PackageInformationProvider"))
   val extensionLocation = packageInformationProvider.getPackageLocation(Extension.name)
   initialize(Array()) // initialized by default
-  logger.info(componentName + " active")
+  log.info(componentName + " active")
   class XStorageCreateDialog extends XDialogEventHandler {
     def callHandlerMethod(xDialog: XDialog, aEventObject: Any, sMethodName: String): Boolean = {
       if (sMethodName == "external_event") {
@@ -101,13 +101,13 @@ class Office(val ctx: XComponentContext) extends XStorage {
     setID(id)
     id
   }
-  def update(): Boolean = {
+  def update(timeout: Int): Boolean = {
     val base = getURL().substring(7)
     val root = new JFile(base + getRoot.getPath())
     val baseLength = root.getPath().length
-    logger.info("update storage '" + this.aName + "' at '" + base + "'")
+    log.info("update storage '" + this.aName + "' at '" + base + "'")
     if (!root.exists()) {
-      logger.info("create root folder " + root.getPath())
+      log.info("create root folder " + root.getPath())
       root.mkdirs()
     }
     def iterate(parent: JFile, DEparent: XFolderUNO): Unit = {
@@ -115,14 +115,14 @@ class Office(val ctx: XComponentContext) extends XStorage {
       folderContents.foreach(entity => {
           if (entity.isDirectory()) {
             val path = entity.getPath().substring(baseLength)
-            logger.warn("check folder: " + path)
-            val folder = core.getOrCreateFolder(this, path)
+            log.warn("check folder: " + path)
+            val folder = O.factory(ctx).getOrCreateFolder(this, path)
             folder.setParent(DEparent)
             iterate(entity, folder)
           } else {
             val path = entity.getPath().substring(baseLength)
-            logger.warn("check file: " + entity.getName())
-            val file = core.getOrCreateFile(DEparent, entity.getName)
+            log.warn("check file: " + entity.getName())
+            val file = O.factory(ctx).getOrCreateFile(DEparent, entity.getName)
           }
         })
     }
@@ -135,20 +135,20 @@ class Office(val ctx: XComponentContext) extends XStorage {
   // - implement trait XInitialization -
   // -----------------------------------
   def initialize(args: Array[AnyRef]) {
-    logger.info("initialize " + componentName)
+    log.info("initialize " + componentName)
   }
   // ------------------------------
   // - implement trait XComponent -
   // ------------------------------
   override def dispose() {
-    logger.info("dispose " + componentName)
+    log.info("dispose " + componentName)
     super.dispose()
   }
 }
 
-object Office extends XBaseInfo {
+object Office extends XBaseObject {
   private val logger = LoggerFactory.getLogger(this.getClass.getName)
-  var componentSingleton: Option[XBase] = None
+  var componentSingleton: Option[XBaseClass] = None
   val componentTitle = "Documentum Elasticus Database"
   val componentDescription = "HSQL database component"
   val componentURL = "http://www."
